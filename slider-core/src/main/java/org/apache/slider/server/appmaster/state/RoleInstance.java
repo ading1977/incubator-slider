@@ -25,6 +25,8 @@ import org.apache.hadoop.registry.client.types.ProtocolTypes;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.NodeId;
+import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.util.resource.Resources;
 import org.apache.slider.api.ClusterNode;
 import org.apache.slider.api.proto.Messages;
 import org.apache.slider.api.types.ContainerInformation;
@@ -39,7 +41,7 @@ import java.util.List;
  */
 public final class RoleInstance implements Cloneable {
 
-  public Container container;
+  private Container container;
   /**
    * Container ID
    */
@@ -132,11 +134,27 @@ public final class RoleInstance implements Cloneable {
     }
   }
 
-  public ContainerId getId() {
+  public synchronized ContainerId getId() {
+    return getContainerId();
+  }
+
+  public synchronized ContainerId getContainerId() {
     return container.getId();
   }
-  
-  public NodeId getHost() {
+
+  public synchronized Container getContainer() {
+    return container;
+  }
+
+  public synchronized void setContainer(Container container) {
+    this.container = container;
+  }
+
+  public synchronized Resource getContainerResource() {
+    return container.getResource();
+  }
+
+  public synchronized NodeId getHost() {
     return container.getNodeId();
   }
 
@@ -146,7 +164,7 @@ public final class RoleInstance implements Cloneable {
       new StringBuilder("RoleInstance{");
     sb.append("role='").append(role).append('\'');
     sb.append(", id='").append(id).append('\'');
-    sb.append(", container=").append(SliderUtils.containerToString(container));
+    sb.append(", container=").append(SliderUtils.containerToString(getContainer()));
     sb.append(", createTime=").append(createTime);
     sb.append(", startTime=").append(startTime);
     sb.append(", released=").append(released);
@@ -164,10 +182,6 @@ public final class RoleInstance implements Cloneable {
     return sb.toString();
   }
 
-  public ContainerId getContainerId() {
-    return container != null ? container.getId() : null;
-  }
-
   /**
    * Generate the protobuf format of a request
    * @return protobuf format. This excludes the Container info
@@ -175,11 +189,8 @@ public final class RoleInstance implements Cloneable {
   public Messages.RoleInstanceState toProtobuf() {
     Messages.RoleInstanceState.Builder builder =
       Messages.RoleInstanceState.newBuilder();
-    if (container != null) {
-      builder.setName(container.getId().toString());
-    } else {
-      builder.setName("unallocated instance");
-    }
+    // Container and ContainerId are guaranteed to be non-null
+    builder.setName(getContainerId().toString());
     if (command != null) {
       builder.setCommand(command);
     }
@@ -218,12 +229,7 @@ public final class RoleInstance implements Cloneable {
    */
   public ClusterNode toClusterNode() {
     ClusterNode node;
-    if (container != null) {
-      node = new ClusterNode(container.getId());
-    } else {
-      node = new ClusterNode();
-      node.name = "unallocated instance";
-    }
+    node = new ClusterNode(getContainerId());
     node.command = command;
     node.createTime = createTime;
     node.diagnostics = diagnostics;
@@ -241,7 +247,11 @@ public final class RoleInstance implements Cloneable {
     node.roleId = roleId;
     node.startTime = startTime ;
     node.state = state;
-    
+    Resource resource = container.getResource();
+    if (resource != null && Resources.fitsIn(Resources.none(), resource)) {
+      node.memory = resource.getMemory();
+      node.vCores = resource.getVirtualCores();
+    }
     return node;
   }
   
