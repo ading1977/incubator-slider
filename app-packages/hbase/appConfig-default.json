@@ -3,17 +3,17 @@
     "metadata": {
     },
     "global": {
-        "application.def": ".slider/package/HBASE/slider-hbase-app-package-0.98.17-hadoop2.zip",
+        "application.def": ".slider/package/HBASE/slider-hbase-app-package-${pkg.version}.zip",
         "create.default.zookeeper.node": "true",
         "system_configs": "core-site",
 
         "site.global.app_user": "yarn",
-        "site.global.app_version": "0.98.17-hadoop2",
-        "site.global.app_root": "${AGENT_WORK_ROOT}/app/install/hbase-0.98.17-hadoop2",
+        "site.global.app_version": "${hbase.version}",
+        "site.global.app_root": "${AGENT_WORK_ROOT}/app/install/hbase-${hbase.version}",
 
-        "site.global.metric_collector_host": "mdinglin02",
-        "site.global.metric_collector_port": "9200",
-        "site.global.metric_collector_lib": "file:///opt/hadoop/share/hadoop/yarn/lib/hadoop-metrics-elasticsearch-sink-1.0.jar",
+        "site.global.metric_collector_host": "${NN_HOST}",
+        "site.global.metric_collector_port": "6188",
+        "site.global.metric_collector_lib": "",
 
         "site.global.hbase_instance_name": "instancename",
         "site.global.hbase_root_password": "secret",
